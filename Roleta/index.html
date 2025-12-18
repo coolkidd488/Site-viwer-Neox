@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Roleta com Saves</title>
+
+<style>
+body{
+  margin:0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg,#6a11cb,#2575fc);
+  color:#fff;
+  padding:20px;
+}
+
+h1,h2{text-align:center}
+
+.container{
+  max-width:900px;
+  margin:auto;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px;
+}
+
+.box{
+  background:rgba(0,0,0,.25);
+  padding:20px;
+  border-radius:14px;
+}
+
+input,button{
+  padding:10px;
+  border-radius:8px;
+  border:none;
+  font-size:15px;
+}
+
+input{
+  width:100%;
+  margin-bottom:10px;
+}
+
+button{
+  background:#ff416c;
+  color:#fff;
+  cursor:pointer;
+}
+
+button:hover{opacity:.85}
+
+ul{list-style:none;padding:0}
+
+li{
+  background:rgba(255,255,255,.2);
+  padding:8px 10px;
+  border-radius:8px;
+  margin:5px 0;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.del{
+  background:#ff2e2e;
+  color:#fff;
+  border:none;
+  padding:4px 8px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.result{
+  margin-top:10px;
+  font-size:20px;
+  font-weight:bold;
+  text-align:center;
+}
+
+.save{
+  background:rgba(255,255,255,.2);
+  padding:8px;
+  border-radius:8px;
+  margin-bottom:6px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎡 Roleta com Saves</h1>
+
+<div class="container">
+
+<!-- BLOCO ESQUERDO -->
+<div class="box">
+  <h2>Blocos</h2>
+  <input id="novo" placeholder="Digite um bloco">
+  <button onclick="add()">Adicionar bloco</button>
+  <input id="qtd" type="number" min="1" placeholder="Quantos sortear">
+  <ul id="lista"></ul>
+</div>
+
+<!-- BLOCO DIREITO -->
+<div class="box">
+  <h2>Sorteio</h2>
+  <button onclick="sortear()">Aleatório</button>
+  <div class="result" id="resultado">?</div>
+
+  <hr>
+
+  <h2>Salvar blocos</h2>
+  <input id="nomeSave" placeholder="Nome do save">
+  <button onclick="salvarBlocos()">➕ Salvar blocos</button>
+
+  <h2>Saves (máx 5)</h2>
+  <div id="saves"></div>
+  <button onclick="salvarTudo()">💾 Salvar todos</button>
+
+  <h2>Recuperar save</h2>
+  <input id="rec" placeholder="Nome do save">
+  <button onclick="recuperar()">Recuperar</button>
+</div>
+
+</div>
+
+<script>
+let blocos = JSON.parse(localStorage.getItem("blocos")) || []
+let saves  = JSON.parse(localStorage.getItem("saves")) || []
+
+const lista = document.getElementById("lista")
+
+function render(){
+  lista.innerHTML=""
+  blocos.forEach((b,i)=>{
+    const li=document.createElement("li")
+    li.innerHTML = `
+      <span>${b}</span>
+      <button class="del" onclick="remover(${i})">❌</button>
+    `
+    lista.appendChild(li)
+  })
+  document.getElementById("qtd").max = blocos.length
+  localStorage.setItem("blocos",JSON.stringify(blocos))
+}
+
+function add(){
+  const v=document.getElementById("novo").value.trim()
+  if(!v) return
+  blocos.push(v)
+  document.getElementById("novo").value=""
+  render()
+}
+
+function remover(i){
+  blocos.splice(i,1)
+  render()
+}
+
+function sortear(){
+  const qtd=parseInt(document.getElementById("qtd").value)||1
+  let temp=[...blocos]
+  let res=[]
+  for(let i=0;i<Math.min(qtd,temp.length);i++){
+    const r=Math.floor(Math.random()*temp.length)
+    res.push(temp[r])
+    temp.splice(r,1)
+  }
+  document.getElementById("resultado").textContent=res.join(", ")
+}
+
+function salvarBlocos(){
+  const nome=document.getElementById("nomeSave").value.trim()
+  if(!nome || blocos.length===0) return
+
+  let existente=saves.find(s=>s.nome===nome)
+  if(!existente && saves.length>=5){
+    alert("Máximo de 5 saves")
+    return
+  }
+
+  if(existente){
+    existente.blocos=[...blocos]
+  }else{
+    saves.push({nome:nome,blocos:[...blocos]})
+  }
+  renderSaves()
+}
+
+function renderSaves(){
+  const div=document.getElementById("saves")
+  div.innerHTML=""
+  saves.forEach((s,i)=>{
+    const d=document.createElement("div")
+    d.className="save"
+    d.innerHTML=`
+      <span>${s.nome}: ${s.blocos.join(", ")}</span>
+      <button class="del" onclick="excluirSave(${i})">❌</button>
+    `
+    div.appendChild(d)
+  })
+}
+
+function excluirSave(i){
+  const ok = confirm("Quer mesmo excluir este save?")
+  if(!ok) return
+  saves.splice(i,1)
+  localStorage.setItem("saves",JSON.stringify(saves))
+  renderSaves()
+}
+
+function salvarTudo(){
+  localStorage.setItem("saves",JSON.stringify(saves))
+  alert("Saves guardados ✅")
+}
+
+function recuperar(){
+  const nome=document.getElementById("rec").value.trim()
+  const save=saves.find(s=>s.nome===nome)
+  if(!save) return alert("Save não encontrado")
+  blocos=[...save.blocos]
+  render()
+}
+
+render()
+renderSaves()
+</script>
+
+</body>
+</html>
